@@ -46,10 +46,29 @@ app.post("/users", (req: Request, res: Response) => {
 
 /**
  * [DELETE] /users/:id
- * @author INSERT NAME HERE
+ * @author Yancha
  */
-app.delete("/users/:id", (req: Request, res: Response) => {
+app.delete("/users/:id", async (req: Request, res: Response) => {
   const userRepository = database.getRepository(User);
+  
+  try {
+    const userId = parseInt(req.params.id);
+    
+    // Check if the user exists
+    const user = await userRepository.findOneBy({ id: userId });
+    
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+    }
+    
+    // Delete the user
+    await userRepository.delete("")
+    
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ message: "Failed to delete user" });
+  }
 });
 
 app.listen(3000, (err) => {
