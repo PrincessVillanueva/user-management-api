@@ -23,8 +23,17 @@ app.use(Express.urlencoded({ extended: true }));
  * [GET] /users/
  * @author INSERT NAME HERE
  */
-app.get("/users", (req: Request, res: Response) => {
-  const userRepository = database.getRepository(User);
+app.get("/users", async (req: Request, res: Response) => {
+  try {
+    // Fetch all users from the database
+    const users = await userRepository.find();
+
+    // Return users in JSON format
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Failed to fetch users" });
+  }
 });
 
 /**
