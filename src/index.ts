@@ -1,5 +1,5 @@
 import Express from "express";
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import "reflect-metadata";
 import createDatabase from "./database";
 import { User } from "./models/User";
@@ -16,12 +16,15 @@ const database = createDatabase(
 const app = Express();
 const userRepository = database.getRepository(User);
 
+/**
+ * Middlewares
+ */
 app.use(Express.json());
 app.use(Express.urlencoded({ extended: true }));
 
 /**
  * [GET] /users/
- * @author INSERT NAME HERE
+ * @author Ian John Dal
  */
 app.get("/users", async (req: Request, res: Response) => {
   try {
@@ -38,7 +41,7 @@ app.get("/users", async (req: Request, res: Response) => {
 
 /**
  * [POST] /users/
- * @author INSERT NAME HERE
+ * @author Princess Villanueva
  */
 app.post("/users", (req: Request, res: Response) => {
   const userRepository = database.getRepository(User);
@@ -46,24 +49,25 @@ app.post("/users", (req: Request, res: Response) => {
 
 /**
  * [DELETE] /users/:id
- * @author Yancha
+ * @author Christian Yancha
  */
 app.delete("/users/:id", async (req: Request, res: Response) => {
   const userRepository = database.getRepository(User);
-  
+
   try {
-    const userId = parseInt(req.params.id);
-    
+    const userId = Number.parseInt(req.params.id);
+
     // Check if the user exists
     const user = await userRepository.findOneBy({ id: userId });
-    
+
     if (!user) {
       res.status(404).json({ message: "User not found" });
+      return;
     }
-    
+
     // Delete the user
-    await userRepository.delete("")
-    
+    await userRepository.remove(user);
+
     res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     console.error("Error deleting user:", error);
@@ -71,14 +75,21 @@ app.delete("/users/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.listen(3000, (err) => {
-  console.log("Server running...");
+/**
+ * NOT FOUND
+ */
+app.all("*", (req: Request, res: Response) => {
+  res.status(404).json({ message: "Not found!" });
 });
 
 database
   .initialize()
   .then(() => {
     console.log("Database connected...");
+
+    app.listen(3000, (err) => {
+      console.log("Server running...");
+    });
   })
   .catch((err) => {
     console.log("Error connecting to database...");
