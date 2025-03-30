@@ -35,7 +35,19 @@ npm run test
 ```
 
 ## Endpoints
-- [GET] /users
-- [GET] /users/:id
-- [POST] /users
-- [DELETE] /users/:id
+### [GET] /users
+Gets all users.
+### [GET] /users/:id
+Gets a specific user.
+### [POST] /users
+Creates a new user entry.
+```typescript
+body: {
+  email: string;
+  password: string;
+  lastName: string;
+  firstName: string;
+}
+```
+### [DELETE] /users/:id
+Deletes a user entry.
