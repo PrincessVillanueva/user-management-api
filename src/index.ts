@@ -25,9 +25,34 @@ app.use(Express.urlencoded({ extended: true }));
  * @author Ian John Dal
  */
 app.get("/users", async (req: Request, res: Response, next: NextFunction) => {
-  const users = await userRepository.find();
-  res.status(200).json(users);
+  try {
+    const users = await userRepository.find();
+    res.status(200).json(users);
+  } catch (err) {
+    next(err);
+  }
 });
+
+/**
+ * [GET] /users/:id
+ * @author Ian John Dal
+ */
+app.get("/users/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = Number.parseInt(req.params.id);
+    const user = await userRepository.findOneBy({ id: userId });
+
+    if (!user) {
+      next(new NotFoundError("User not found!"));
+      return;
+    }
+
+    res.status(200).json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 /**
  * [POST] /users/
