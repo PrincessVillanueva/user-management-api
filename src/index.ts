@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import "reflect-metadata";
 import createDatabase from "./database";
 import { User } from "./models/User";
-import error from "./middleware/error";
+import error, { NotFoundError } from "./middleware/error";
 require("dotenv").config();
 
 const database = createDatabase(
@@ -50,7 +50,7 @@ app.delete(
     const user = await userRepository.findOneBy({ id: userId });
 
     if (!user) {
-      next(new Error("Not found!"));
+      next(new NotFoundError("User not found!"));
       return;
     }
 
@@ -65,7 +65,7 @@ app.delete(
  * NOT FOUND
  */
 app.all("*", (req: Request, res: Response, next: NextFunction) => {
-  throw new Error("Not found!");
+  throw new NotFoundError("Route not found!");
 });
 
 /**
