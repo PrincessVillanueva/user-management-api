@@ -17,13 +17,19 @@ DB_NAME=your-db
 ```bash
 npm install
 ```
-3. Run the program.
+3. Turn on the database first.
+4. Run the program.
 ```bash
 npm run dev
 ```
 
 ## Testing
-1. Run this command.
+1. Turn on the database first.
+2. Run the server.
+```bash
+npm run dev
+```
+3. Run this command.
 ```bash
 npm run test
 ```
