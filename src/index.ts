@@ -38,7 +38,6 @@ app.post("/users", async (req: Request, res: Response, next: NextFunction): Prom
     // Extract data from request body
     const { firstName, lastName, email, password } = req.body;
 
-    // Validate required fields
     if (!firstName || !lastName || !email || !password) {
       res.status(400).json({ message: "All fields are required." });
       return;
@@ -51,7 +50,6 @@ app.post("/users", async (req: Request, res: Response, next: NextFunction): Prom
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     // Create a new user instance with the hashed password
     const newUser = userRepository.create({
       firstName,
