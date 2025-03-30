@@ -1,6 +1,7 @@
 import Express from "express";
 import type { NextFunction, Request, Response } from "express";
 import "reflect-metadata";
+import bcrypt from "bcrypt";
 import createDatabase from "./database";
 import { User } from "./models/User";
 import error from "./middleware/error";
@@ -32,9 +33,46 @@ app.get("/users", async (req: Request, res: Response, next: NextFunction) => {
  * [POST] /users/
  * @author Princess Villanueva
  */
-app.post("/users", (req: Request, res: Response) => {
-  const userRepository = database.getRepository(User);
+app.post("/users", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    // Extract data from request body
+    const { firstName, lastName, email, password } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password) {
+      res.status(400).json({ message: "All fields are required." });
+      return;
+    }
+
+    const existingUser = await userRepository.findOneBy({ email });
+    if (existingUser) {
+      res.status(400).json({ message: "Email already in use." });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new user instance with the hashed password
+    const newUser = userRepository.create({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+    });
+
+    // Save the user in the database
+    await userRepository.save(newUser);
+
+    // Respond with success message excluding password
+    res.status(201).json({
+      message: "User created successfully",
+      user: { id: newUser.id, firstName, lastName, email },
+    });
+  } catch (error) {
+    next(error); 
+  }
 });
+
 
 /**
  * [DELETE] /users/:id
