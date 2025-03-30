@@ -10,6 +10,16 @@ export class NotFoundError implements Error {
   }
 }
 
+export class BadRequestError implements Error {
+  name: string;
+  message: string;
+
+  constructor(message: string) {
+    this.name = "Bad Request";
+    this.message = message;
+  }
+}
+
 export default function error(
   err: Error,
   req: Request,

@@ -3,7 +3,8 @@ import type { NextFunction, Request, Response } from "express";
 import "reflect-metadata";
 import createDatabase from "./database";
 import { User } from "./models/User";
-import error, { NotFoundError } from "./middleware/error";
+import error, { BadRequestError, NotFoundError } from "./middleware/error";
+import { z, ZodError } from "zod";
 require("dotenv").config();
 
 const database = createDatabase(
@@ -32,8 +33,20 @@ app.get("/users", async (req: Request, res: Response, next: NextFunction) => {
  * [POST] /users/
  * @author Princess Villanueva
  */
-app.post("/users", (req: Request, res: Response) => {
-  const userRepository = database.getRepository(User);
+const postSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  email: z.string(),
+});
+app.post("/users", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // body with validation already
+    const body = await postSchema.parseAsync(req.body);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      next(new BadRequestError("Invalid request body!"));
+    }
+  }
 });
 
 /**
@@ -43,7 +56,6 @@ app.post("/users", (req: Request, res: Response) => {
 app.delete(
   "/users/:id",
   async (req: Request, res: Response, next: NextFunction) => {
-    const userRepository = database.getRepository(User);
     const userId = Number.parseInt(req.params.id);
 
     // Check if the user exists
