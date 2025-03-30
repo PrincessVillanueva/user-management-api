@@ -2,19 +2,10 @@ import Express from "express";
 import type { NextFunction, Request, Response } from "express";
 import "reflect-metadata";
 import bcrypt from "bcrypt";
-import createDatabase from "./database";
+import database from "./database";
 import { User } from "./models/User";
 import error, { BadRequestError, NotFoundError } from "./middleware/error";
 import { z, ZodError } from "zod";
-require("dotenv").config();
-
-const database = createDatabase(
-  process.env.DB_HOST || "localhost",
-  process.env.DB_PORT ? Number.parseInt(process.env.DB_PORT) : 3306,
-  process.env.DB_USERNAME || "root",
-  "",
-  process.env.DB_NAME || "intprog"
-);
 
 const app = Express();
 const userRepository = database.getRepository(User);
@@ -38,22 +29,24 @@ app.get("/users", async (req: Request, res: Response, next: NextFunction) => {
  * [GET] /users/:id
  * @author Ian John Dal
  */
-app.get("/users/:id", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const userId = Number.parseInt(req.params.id);
-    const user = await userRepository.findOneBy({ id: userId });
+app.get(
+  "/users/:id",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = Number.parseInt(req.params.id);
+      const user = await userRepository.findOneBy({ id: userId });
 
-    if (!user) {
-      next(new NotFoundError("User not found!"));
-      return;
+      if (!user) {
+        next(new NotFoundError("User not found!"));
+        return;
+      }
+
+      res.status(200).json(user);
+    } catch (err) {
+      next(err);
     }
-
-    res.status(200).json(user);
-  } catch (err) {
-    next(err);
   }
-});
-
+);
 
 /**
  * [POST] /users/
@@ -62,49 +55,58 @@ app.get("/users/:id", async (req: Request, res: Response, next: NextFunction) =>
 const postSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
-  email: z.string().email(), 
-  password: z.string().min(5)
+  email: z.string().email(),
+  password: z.string().min(5),
 });
 
-app.post("/users", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    // Validate request body using Zod
-    const body = postSchema.parse(req.body);
+app.post(
+  "/users",
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      // Validate request body using Zod
+      const body = postSchema.parse(req.body);
 
-    // Check if email already exists
-    const existingUser = await userRepository.findOneBy({ email: body.email });
-    if (existingUser) {
-      res.status(400).json({ message: "Email already in use." });
-      return;
+      // Check if email already exists
+      const existingUser = await userRepository.findOneBy({
+        email: body.email,
+      });
+      if (existingUser) {
+        res.status(400).json({ message: "Email already in use." });
+        return;
+      }
+
+      const hashedPassword = await bcrypt.hash(body.password, 10);
+
+      //Create new user
+      const newUser = userRepository.create({
+        firstName: body.firstName,
+        lastName: body.lastName,
+        email: body.email,
+        password: hashedPassword,
+      });
+
+      //Save user in database
+      await userRepository.save(newUser);
+
+      // Respond with the created user (excluding password)
+      res.status(201).json({
+        id: newUser.id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        password: newUser.password,
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res
+          .status(400)
+          .json({ name: "Bad Request", message: "Invalid request body!" });
+        return;
+      }
+      next(error);
     }
-
-    const hashedPassword = await bcrypt.hash(body.password, 10);
-
-    //Create new user
-    const newUser = userRepository.create({
-      firstName: body.firstName,
-      lastName: body.lastName,
-      email: body.email,
-      password: hashedPassword,
-    });
-
-    //Save user in database
-    await userRepository.save(newUser);
-
-    // Respond with the created user (excluding password)
-    res.status(201).json({
-      message: "User created successfully",
-      user: { id: newUser.id, firstName: newUser.firstName, lastName: newUser.lastName, email: newUser.email,  password: newUser.password}
-    });
-  } catch (error) {
-    if (error instanceof ZodError) {
-      res.status(400).json({ name: "Bad Request", message: "Invalid request body!" });
-      return;
-    }
-    next(error);
   }
-});
-
+);
 
 /**
  * [DELETE] /users/:id
@@ -124,9 +126,9 @@ app.delete(
     }
 
     // Delete the user
-    await userRepository.remove(user);
+    const deletedUser = await userRepository.remove(user);
 
-    res.status(200).json({ message: "User deleted successfully" });
+    res.status(200).json(deletedUser);
   }
 );
 
@@ -142,15 +144,4 @@ app.all("*", (req: Request, res: Response, next: NextFunction) => {
  */
 app.use(error);
 
-database
-  .initialize()
-  .then(() => {
-    console.log("Database connected...");
-
-    app.listen(3000, (err) => {
-      console.log("Server running...");
-    });
-  })
-  .catch((err) => {
-    console.log("Error connecting to database...");
-  });
+export default app;

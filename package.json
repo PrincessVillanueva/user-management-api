@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "dev": "ts-node-dev ./src/index.ts"
+    "dev": "ts-node-dev ./app.ts",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +25,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@types/bcrypt": "^5.0.2"
+    "@jest/globals": "^29.7.0",
+    "@types/bcrypt": "^5.0.2",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.0",
+    "ts-jest": "^29.3.0"
   }
 }
