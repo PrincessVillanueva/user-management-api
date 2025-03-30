@@ -28,7 +28,13 @@ export default function error(
 ) {
   if (err instanceof NotFoundError) {
     res.status(404);
+  } else if (err instanceof BadRequestError) {
+    res.status(400);
+  } else {
+    res.status(500); // Internal Server Error for unknown errors
   }
 
-  res.send({ name: err.name, message: err.message });
+  res.json({ name: err.name, message: err.message });
+
+  next();
 }

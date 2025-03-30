@@ -1,6 +1,7 @@
 import Express from "express";
 import type { NextFunction, Request, Response } from "express";
 import "reflect-metadata";
+import bcrypt from "bcrypt";
 import createDatabase from "./database";
 import { User } from "./models/User";
 import error, { BadRequestError, NotFoundError } from "./middleware/error";
@@ -61,18 +62,49 @@ app.get("/users/:id", async (req: Request, res: Response, next: NextFunction) =>
 const postSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
-  email: z.string(),
+  email: z.string().email(), 
+  password: z.string().min(5)
 });
-app.post("/users", async (req: Request, res: Response, next: NextFunction) => {
+
+app.post("/users", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // body with validation already
-    const body = await postSchema.parseAsync(req.body);
-  } catch (err) {
-    if (err instanceof ZodError) {
-      next(new BadRequestError("Invalid request body!"));
+    // Validate request body using Zod
+    const body = postSchema.parse(req.body);
+
+    // Check if email already exists
+    const existingUser = await userRepository.findOneBy({ email: body.email });
+    if (existingUser) {
+      res.status(400).json({ message: "Email already in use." });
+      return;
     }
+
+    const hashedPassword = await bcrypt.hash(body.password, 10);
+
+    //Create new user
+    const newUser = userRepository.create({
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email: body.email,
+      password: hashedPassword,
+    });
+
+    //Save user in database
+    await userRepository.save(newUser);
+
+    // Respond with the created user (excluding password)
+    res.status(201).json({
+      message: "User created successfully",
+      user: { id: newUser.id, firstName: newUser.firstName, lastName: newUser.lastName, email: newUser.email,  password: newUser.password}
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      res.status(400).json({ name: "Bad Request", message: "Invalid request body!" });
+      return;
+    }
+    next(error);
   }
 });
+
 
 /**
  * [DELETE] /users/:id
